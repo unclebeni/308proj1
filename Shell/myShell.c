@@ -2,22 +2,24 @@
 #include <string.h>
 #include <stdlib.h>
 
-
-char* prompt;
-prompt = (char *) malloc(7);
-prompt = "308sh> "; //this is the default prompt, can be changed when starting the shell
+/**static char* prompt; 
+prompt = (char *) malloc(7*sizeof(char));
+prompt = "308sh>"; //this is the default prompt, can be changed when starting the shell**/
 char command[100];
 static char* promptFlag = "-p";
 
 int main(int argc, char **argv)
 {
+	char* prompt; 
+	prompt = (char *) malloc(7*sizeof(char));
+	prompt = "308sh>"; //this will be the default prompt when startin the shell
 
 	if(!strcmp(promptFlag, argv[1]))
 	{
 		if(strlen(argv[2]) != 0)
 		{
-		prompt = (char *) realloc(prompt, strlen(argv[2]));
-		strcpy(prompt, argv[1]);
+		prompt = calloc(strlen(argv[2]), strlen(argv[2])*sizeof(char));
+		strcpy(prompt, argv[2]);
 		}
 	}
 
@@ -29,6 +31,7 @@ int main(int argc, char **argv)
 	
 	}
 
+	free(prompt);	
 	
-
+	return 0;
 }
