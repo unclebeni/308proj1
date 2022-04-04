@@ -108,7 +108,7 @@ int main(int argc, char** argv)
 	int i;
 	for(i = 0; i < sizeof(userInBroken); i++)
 	{
-		free(userInBroken[i]);s
+		free(userInBroken[i]);
 	}
 
 	printf("done");
