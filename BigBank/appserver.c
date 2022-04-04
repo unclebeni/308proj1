@@ -3,29 +3,30 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
 //#include <ptrhead.h>
 #include "Bank.h"
-/*
+
 struct trans
 {
 	int acc_id;
 	int amount;
-}
+};
 struct request
 {
 	struct request * next;
 	int	request_id;
 	int	check_acc_id;
-	struct	num_trans;
+	struct trans* num_trans;
 	struct	timeval starttime, endtime;
-}
+};
 
 struct queue
 {
 	struct request * head, * tail;
 	int num_jobs;
-}
-*/
+};
+
 
 int main(int argc, char** argv)
 {
@@ -33,7 +34,7 @@ int main(int argc, char** argv)
 	int acCount;
 	char * outputFile;
 	int done = 0;
-	int k;
+	int k, i;
 	char * userIn; userIn = (char*) malloc(265);
 	char ** userInBroken; userInBroken = (char**)malloc(10*sizeof(char*));	
 	char * token = "";
@@ -57,10 +58,15 @@ int main(int argc, char** argv)
 	{
 		printf("Error setting up accounts.\n");
 		exit(0);
+	} else{initialize_account(acCount);}
+	
+	pthread_t threadArray[numThreads];
+	for(i = 0; i < numThreads; i++)
+	{
+		pthread_create(&threadArray[i], NULL, (void*)&threadWorker, NULL);
 	}
 	
-	//make threads... not sure how to do that yet
-	
+
 	do{	//To start, we need to be able to take user input.
 		userInBroken[0] = '\0';
 		printf("ENTER COMMAND> ");
@@ -89,19 +95,13 @@ int main(int argc, char** argv)
 		{done = 1;}
 		else if(strcmp(userInBroken[0], "CHECK") == 0)
 		{	//Check the given account.
-			printf("$d\n", read_account(atoi(userInBroken[0])));
+			printf("%d\n", read_account(atoi(userInBroken[0])));
 		}
-		else if(strcmp(userInBroken[1], "BAL") == 0)
+		else if(strcmp(userInBroken[0], "TRANS") == 0)
 		{
-			printf("Support coming soon.\n");
+			
 		}	
-		else //default
-		{printf("Command not recognized.\n");}
 	
-
-	}while(done == 0); 
-
-
 
 	//free all the pointers I allocated space to.
 	free(userIn);
@@ -113,4 +113,62 @@ int main(int argc, char** argv)
 
 	printf("done");
 		 
+}
+
+void threadWorker(char * args)
+{
+	
+}
+int transaction(int amount, int idNum)
+{
+	if(amount < 0 && abs(amount) > read_account(idNum))
+	{
+		return -1;
+	}
+	write_account(amount+read_account(idNum), idNum);
+	return 0;
+}
+int check(int idNum)
+{
+	return(read_account(idNum));
+}
+
+void enqueue(struct queue *q, struct trans t, int check_id)
+{
+	struct request *r;
+	struct timeval time;
+	if(t == null)
+	{
+		r-> check_acc_id = check_id;
+	} else
+	{
+		r->num_trans = t;
+		r->starttime = time;
+	}
+
+	if(q-> head == NULL)
+	{
+		q-> head = r;
+	}
+	else{ q -> tail -> next = r;}
+	q -> tail = NULL;
+}
+struct queue *constructQ()
+{
+	struct queue *q;
+	q = malloc(sizeof(struct queue));
+	q-> head = q-> tail = 0;
+	q-> numJobs = 0;
+	return q;
+}
+
+int dequeue(struct queue *q)
+{
+	int ret;
+	struct request *r;
+	ret = q->head->request_id;
+	r = q->head;
+	q->head = r->next;
+	free(r);
+	return ret;
 }
