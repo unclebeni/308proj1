@@ -1,4 +1,9 @@
 
+/***************************************
+ * Author: Benito Moeckly
+ * CPRE 308
+ * */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -6,6 +11,8 @@
 #include <pthread.h>
 //#include <ptrhead.h>
 #include "Bank.h"
+
+void threadWorker(int accNum, char * args)
 
 struct trans
 {
@@ -20,25 +27,36 @@ struct request
 	struct trans* num_trans;
 	struct	timeval starttime, endtime;
 };
-
+kjhgcx
 struct queue
 {
 	struct request * head, * tail;
 	int num_jobs;
 };
 
+#define MAX_THREADS = 10;
+
+pthread_mutex_t* mut; //NEED THIS TO LOCK THE BANK ACCOUNTS
+
 
 int main(int argc, char** argv)
 {
+/**FIRST INIALIZE ALL THE VARIABLES WE WILL NEED**/
 	int numThreads;
 	int acCount;
 	char * outputFile;
 	int done = 0;
 	int k, i;
-	char * userIn; userIn = (char*) malloc(265);
-	char ** userInBroken; userInBroken = (char**)malloc(10*sizeof(char*));	
+
+	char * userIn; userIn = (char*) malloc(265); //dont forget to free
+	char ** userInBroken; userInBroken = (char**)malloc(10*sizeof(char*));	//don't forget to free	
 	char * token = "";
 	char delim[1] = " ";
+
+	pthread_t threadArray[numThreads];
+
+
+
 	//CHECK IF ARGUMENTS ARE NOT NULL FIRST
 	if(argv[0] != NULL && argv[2] != NULL && argv[3] != NULL )
 	{
@@ -53,21 +71,25 @@ int main(int argc, char** argv)
 		exit(0);
 	}
 
-	//SET UP ACCOUNTS AND THREADS
-	if(initialize_accounts(acCount) == 0)
+/****THIS LOOP WILL INITIALIZE ACCOUNTS*************/
+	if(initialize_accounts(acCount) == 0)+
 	{
 		printf("Error setting up accounts.\n");
 		exit(0);
 	} else{initialize_account(acCount);}
-	
-	pthread_t threadArray[numThreads];
-	for(i = 0; i < numThreads; i++)
+/****THIS LOOP WILL INTITALIZE THE THREADS AND MUTEXES****/
+	for(i = 0; i < numThreads && i < 10; i++)
 	{
 		pthread_create(&threadArray[i], NULL, (void*)&threadWorker, NULL);
 	}
-	
+	mut = (pthread_mutex_t*)malloc(acCount*sizeof(pthread_mutex_t));
+	for(i = 0; i < acCount; i++)
+	{
+		pthread_mutex_init(&mut[i], NULL);
+	}
 
-	do{	//To start, we need to be able to take user input.
+/****TAKE USER INPUT****/
+	do{	
 		userInBroken[0] = '\0';
 		printf("ENTER COMMAND> ");
 		fgets(userIn, 256, stdin);
@@ -93,14 +115,14 @@ int main(int argc, char** argv)
 		{done = 1;}
 		else if(strcmp(userInBroken[0], "EXIT") == 0)
 		{done = 1;}
-		else if(strcmp(userInBroken[0], "CHECK") == 0)
-		{	//Check the given account.
-			printf("%d\n", read_account(atoi(userInBroken[0])));
-		}
-		else if(strcmp(userInBroken[0], "TRANS") == 0)
+	
+		else if(strcmp(userInBroken[0], "TRANS") == 0 || strcmp(userInBroken[0], "CHECK") == 0)
 		{
 			
 		}	
+		else{
+			printf("Unrecognized Command");
+		}
 	
 
 	//free all the pointers I allocated space to.
@@ -115,9 +137,9 @@ int main(int argc, char** argv)
 		 
 }
 
-void threadWorker(char * args)
+void threadWorker(int accNum, char * args)
 {
-	
+	ptrhead_mutex_trylock(&mut[accNum]);
 }
 int transaction(int amount, int idNum)
 {
