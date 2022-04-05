@@ -12,7 +12,7 @@
 //#include <ptrhead.h>
 #include "Bank.h"
 
-void threadWorker(int accNum, char * args)
+void threadWorker()
 
 struct trans
 {
@@ -27,7 +27,7 @@ struct request
 	struct trans* num_trans;
 	struct	timeval starttime, endtime;
 };
-kjhgcx
+
 struct queue
 {
 	struct request * head, * tail;
@@ -118,7 +118,8 @@ int main(int argc, char** argv)
 	
 		else if(strcmp(userInBroken[0], "TRANS") == 0 || strcmp(userInBroken[0], "CHECK") == 0)
 		{
-			
+			for(i = 0; i < k; i++)
+			enqueue 
 		}	
 		else{
 			printf("Unrecognized Command");
@@ -137,9 +138,11 @@ int main(int argc, char** argv)
 		 
 }
 
-void threadWorker(int accNum, char * args)
+void threadWorker())
 {
-	ptrhead_mutex_trylock(&mut[accNum]);
+	do{
+		if(q.
+	}while(true);
 }
 int transaction(int amount, int idNum)
 {
@@ -155,7 +158,7 @@ int check(int idNum)
 	return(read_account(idNum));
 }
 
-void enqueue(struct queue *q, struct trans t, int check_id)
+void enqueue(struct queue *q, struct trans t, int check_id, int check_id)
 {
 	struct request *r;
 	struct timeval time;
@@ -179,7 +182,7 @@ struct queue *constructQ()
 {
 	struct queue *q;
 	q = malloc(sizeof(struct queue));
-	q-> head = q-> tail = 0;
+	q-> head = q-> tail = NULL;
 	q-> numJobs = 0;
 	return q;
 }
