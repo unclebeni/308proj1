@@ -12,20 +12,19 @@
 //#include <ptrhead.h>
 #include "Bank.h"
 
-void threadWorker()
-
+void threadWorker();
 struct trans
 {
 	int acc_id;
 	int amount;
-};
+}
+
 struct request
 {
 	struct request * next;
 	int	request_id;
 	int	check_acc_id;
-	struct trans* num_trans;
-	struct	timeval starttime, endtime;
+	struct trans * t;
 };
 
 struct queue
@@ -37,7 +36,7 @@ struct queue
 #define MAX_THREADS = 10;
 
 pthread_mutex_t* mut; //NEED THIS TO LOCK THE BANK ACCOUNTS
-
+pthread_cond_t job_cv;
 
 int main(int argc, char** argv)
 {
@@ -55,7 +54,12 @@ int main(int argc, char** argv)
 
 	pthread_t threadArray[numThreads];
 
+	int helper;
+	int helperTwo;
 
+	int requests = 0;
+
+	struct queue* q = createQ();
 
 	//CHECK IF ARGUMENTS ARE NOT NULL FIRST
 	if(argv[0] != NULL && argv[2] != NULL && argv[3] != NULL )
@@ -80,13 +84,14 @@ int main(int argc, char** argv)
 /****THIS LOOP WILL INTITALIZE THE THREADS AND MUTEXES****/
 	for(i = 0; i < numThreads && i < 10; i++)
 	{
-		pthread_create(&threadArray[i], NULL, (void*)&threadWorker, NULL);
+		pthread_create(&threadArray[i], NULL, (void*)&threadWorker, &q);
 	}
 	mut = (pthread_mutex_t*)malloc(acCount*sizeof(pthread_mutex_t));
 	for(i = 0; i < acCount; i++)
 	{
 		pthread_mutex_init(&mut[i], NULL);
 	}
+	pthread_cond_init(&job_cv, NULL);
 
 /****TAKE USER INPUT****/
 	do{	
@@ -115,17 +120,41 @@ int main(int argc, char** argv)
 		{done = 1;}
 		else if(strcmp(userInBroken[0], "EXIT") == 0)
 		{done = 1;}
-	
-		else if(strcmp(userInBroken[0], "TRANS") == 0 || strcmp(userInBroken[0], "CHECK") == 0)
+		else if(strcmp(userInBroken[0], "CHECK") == 0)
 		{
-			for(i = 0; i < k; i++)
-			enqueue 
-		}	
-		else{
-			printf("Unrecognized Command");
+			requests +=1;
+			 enQ(q, requests, atoi(userInBroken[1]), NULL);
 		}
-	
+		else if(strcmp(userInBroken[0], "TRANS") == 0)
+		{
+			struct trans * t;
+			trans = calloc(MAX_THREADS, MAX_THREADS*sizeof(struct trans));
+			i = 1;
+			while(i < k)
+			{
+				
+				transaction[i].acc_id = atoi(userInBroken[i]);
+				i+=1; 
+				transaction[i-1].amount = atoi(userIntBroken[i]);
+				i+=;
+				
+			}
+			while(i < MAX_THREADS)
+			{
+				transaction[i].acc_id = 0;
+				transaction[i].amount = 0;
+				i+=1;
+			}
 
+			requests +=1;
+			enQ(q, requests, -1, transaction);
+		}	
+		else
+			{
+			printf("Unrecognized Command");
+			}
+	
+	}while(done != 1);
 	//free all the pointers I allocated space to.
 	free(userIn);
 	int i;
@@ -138,62 +167,89 @@ int main(int argc, char** argv)
 		 
 }
 
-void threadWorker())
+void threadWorker(struct queue * q))
 {
-	do{
-		if(q.
-	}while(true);
-}
-int transaction(int amount, int idNum)
-{
-	if(amount < 0 && abs(amount) > read_account(idNum))
+	int currentRequestId;
+	int checkAccount;
+	struct trans t;
+	int o = 0;
+
+	while(true)
 	{
-		return -1;
+		while(q.num_jobs == 0)
+			pthread_cond_wait(&job_cv)
+		
+		currentRequestId = q->head.request_id;
+		checkId = q->head.check_acc_id;
+		t = q->t;
+		deQ(q);
+		if(checkId == -1) //This means we need to go through the transactions
+		{
+			while(transaction[o].account > 0)
+			{
+				
+			}
+		}
+		else
+		{
+			pthread_mutex_lock(&mut[checkId]);
+		}
+		
 	}
-	write_account(amount+read_account(idNum), idNum);
-	return 0;
+}
+int transaction(transaction * t)
+{
+	//stuff here
 }
 int check(int idNum)
 {
 	return(read_account(idNum));
 }
 
-void enqueue(struct queue *q, struct trans t, int check_id, int check_id)
+struct queue* createQ()
 {
-	struct request *r;
-	struct timeval time;
-	if(t == null)
-	{
-		r-> check_acc_id = check_id;
-	} else
-	{
-		r->num_trans = t;
-		r->starttime = time;
-	}
-
-	if(q-> head == NULL)
-	{
-		q-> head = r;
-	}
-	else{ q -> tail -> next = r;}
-	q -> tail = NULL;
-}
-struct queue *constructQ()
-{
+	//make queue
 	struct queue *q;
 	q = malloc(sizeof(struct queue));
-	q-> head = q-> tail = NULL;
-	q-> numJobs = 0;
-	return q;
-}
-
-int dequeue(struct queue *q)
-{
-	int ret;
+	//queue will always have this dummy node, dummy starts as head and tail
+	//the tail will point to the head
 	struct request *r;
-	ret = q->head->request_id;
-	r = q->head;
+	r = malloc(sizeof(request));
+	r->next = r;
+	r.request_id = -1;
+	r.check_acc_id = -1;
+	r.transactions = NULL;
+	q->head = q->tail = r;
+}
+void deQ(struct queue *q)
+{
+	struct request *r;
+	r = q-> head;
 	q->head = r->next;
 	free(r);
-	return ret;
+	q.num_jobs-=1;
+}
+void enQ(struct queue *q, int req_id, int check_id, struct trans * transactions)
+{
+	struct request *r;
+	r = malloc(sizeof(struct request));
+
+	r.request_id = req_id;
+	r.check_acc_id = check_id;
+	r->t = transactions
+
+	if(q->head.request_id == -1)
+	{
+		q->head = r;
+	}
+	else
+	{
+		q->tail->next = r;
+	}
+	q->tail = r;
+	q.num_jobs +=1;
+	if(q.num_jobs == 1)
+	{
+		pthread_cond_braodcast(&job_cv);
+	}
 }
