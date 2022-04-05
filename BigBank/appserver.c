@@ -35,15 +35,17 @@ struct queue
 
 #define MAX_THREADS = 10;
 
-pthread_mutex_t* mut; //NEED THIS TO LOCK THE BANK ACCOUNTS
+pthread_mutex_t* mut; //NEED THIS TO LOCK THE BANK ACCOUNTS //MUT[0] WILL ACT AS THE FILE MUTEX SINCE THERE IS NOT BANK ACCOUNT 0
+pthread_mutex_t* q_mut; //NEED THIS TO LOCK THE QUEUE
 pthread_cond_t job_cv;
+char * outputFile;
+FILE *f;
 
 int main(int argc, char** argv)
 {
 /**FIRST INIALIZE ALL THE VARIABLES WE WILL NEED**/
 	int numThreads;
 	int acCount;
-	char * outputFile;
 	int done = 0;
 	int k, i;
 
@@ -74,6 +76,8 @@ int main(int argc, char** argv)
 		printf("Null Argument(s)\n");
 		exit(0);
 	}
+/****OPEN FILE****/
+f = fopen(outputfile, "w+");
 
 /****THIS LOOP WILL INITIALIZE ACCOUNTS*************/
 	if(initialize_accounts(acCount) == 0)+
@@ -92,8 +96,9 @@ int main(int argc, char** argv)
 		pthread_mutex_init(&mut[i], NULL);
 	}
 	pthread_cond_init(&job_cv, NULL);
+	ptrhead_mutex_init(&q_mut, NULL);
 
-/****TAKE USER INPUT****/
+/****TAKE USER INPUT****/	fclose(fp);
 	do{	
 		userInBroken[0] = '\0';
 		printf("ENTER COMMAND> ");
@@ -123,12 +128,14 @@ int main(int argc, char** argv)
 		else if(strcmp(userInBroken[0], "CHECK") == 0)
 		{
 			requests +=1;
-			 enQ(q, requests, atoi(userInBroken[1]), NULL);
+			pthread_mutex_trylock(&q_mut);
+			enQ(q, requests, atoi(userInBroken[1]), NULL);
+			pthread_mutex_unlock(&q_mut);
 		}
 		else if(strcmp(userInBroken[0], "TRANS") == 0)
 		{
 			struct trans * t;
-			trans = calloc(MAX_THREADS, MAX_THREADS*sizeof(struct trans));
+			trans = calloc((k-1)/2, ((k-1)/2)*sizeof(struct trans));
 			i = 1;
 			while(i < k)
 			{
@@ -136,18 +143,14 @@ int main(int argc, char** argv)
 				transaction[i].acc_id = atoi(userInBroken[i]);
 				i+=1; 
 				transaction[i-1].amount = atoi(userIntBroken[i]);
-				i+=;
+				i+=1;
 				
 			}
-			while(i < MAX_THREADS)
-			{
-				transaction[i].acc_id = 0;
-				transaction[i].amount = 0;
-				i+=1;
-			}
-
+			
 			requests +=1;
+			pthread_mutex_trylock(&q_mut);
 			enQ(q, requests, -1, transaction);
+			pthread_mutex_unlock(&q_mut);
 		}	
 		else
 			{
@@ -157,12 +160,13 @@ int main(int argc, char** argv)
 	}while(done != 1);
 	//free all the pointers I allocated space to.
 	free(userIn);
+	free(mut);
 	int i;
 	for(i = 0; i < sizeof(userInBroken); i++)
 	{
 		free(userInBroken[i]);
 	}
-
+	fclose(fp);
 	printf("done");
 		 
 }
@@ -171,36 +175,57 @@ void threadWorker(struct queue * q))
 {
 	int currentRequestId;
 	int checkAccount;
+	struct timeval starttime;
+	struct timeval endtime;
 	struct trans t;
-	int o = 0;
+	int j = 0;
+	int skip = 0;
+	int previousAccount;
+	char * outString;
 
 	while(true)
 	{
-		while(q.num_jobs == 0)
+		while(q.num_jobs == 0 || q->head->next == q->tail)
 			pthread_cond_wait(&job_cv)
+		
 		
 		currentRequestId = q->head.request_id;
 		checkId = q->head.check_acc_id;
 		t = q->t;
 		deQ(q);
-		if(checkId == -1) //This means we need to go through the transactions
-		{
-			while(transaction[o].account > 0)
-			{
-				
-			}
+		//lock down all accounts
+		for(j = 0; j < sizeof(t); j++)
+		{ pthread_mutex_trylock(&mut[t[j].acc_num]);}
+		//see if all the accounts have sufficient funds
+		j=0;
+		for(j = 0; j < sizeof(t); j++)
+		{ 
+			if(read_account(t[j].acc_num) + t[j].amount < 0)
+			{ skip = 1; break;}
+		}
+		if(skip == 1)
+		{//insufficient funds
+			outString = snprintf();	
 		}
 		else
-		{
-			pthread_mutex_lock(&mut[checkId]);
+		{//carry on with the transaction
+			for(j = 0; j < sizeof(t); j++)
+			{
+				write_account(t[j].acc_num, t[j].amount);			
+			}	
+			outString =snprintf();	
 		}
-		
-	}
+		for(j = 0; j < sizeof(t); j++)
+		{
+			pthread_mutex_unlock(&mut[t[j].acc_num]);
+		}
+		pthread_mutex_trylock(&mut[0]);
+		fputs(outString, f);
+		pthread_mutex_unlock(&mut[0]);
+		skip = 0;
+		}
 }
-int transaction(transaction * t)
-{
-	//stuff here
-}
+
 int check(int idNum)
 {
 	return(read_account(idNum));
@@ -224,8 +249,8 @@ struct queue* createQ()
 void deQ(struct queue *q)
 {
 	struct request *r;
-	r = q-> head;
-	q->head = r->next;
+	r = q-> head->next;
+	q->head->next = r->next;
 	free(r);
 	q.num_jobs-=1;
 }
@@ -252,4 +277,9 @@ void enQ(struct queue *q, int req_id, int check_id, struct trans * transactions)
 	{
 		pthread_cond_braodcast(&job_cv);
 	}
-}
+}struct request * next; // pointer to the next request in the list
+int request_id; // request ID assigned by the main thread
+int check_acc_id;
+
+
+
